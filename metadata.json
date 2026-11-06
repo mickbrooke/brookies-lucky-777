@@ -1,0 +1,6 @@
+{
+  "name": "Brookie's Lucky 7",
+  "description": "Authentic classic British pub fruit machine simulator featuring realistic mechanical reels, nudges, holds, and synthesized retro arcade audio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

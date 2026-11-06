@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Brookie's Lucky 7 - Classic British Pub Fruit Machine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700;800&family=Press+Start+2P&family=Teko:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --wood-cabinet: radial-gradient(circle at 50% 15%, #422006 0%, #1c0a00 100%);
+    }
+
+    body {
+      font-family: 'Chakra Petch', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      background: #09090b;
+      overflow-x: hidden;
+    }
+
+    .font-led {
+      font-family: 'Press Start 2P', monospace;
+    }
+    .font-bezel {
+      font-family: 'Teko', sans-serif;
+      letter-spacing: 1px;
+    }
+
+    .cabinet-casing {
+      background: var(--wood-cabinet);
+      box-shadow: 0 0 35px rgba(0,0,0,0.95), inset 0 0 15px rgba(0,0,0,0.8), inset 0 2px 4px rgba(251, 191, 36, 0.4);
+      border: 4px solid #b45309;
+    }
+
+    .led-display {
+      background: #090d16;
+      border: 2px solid #1e293b;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.95);
+      text-shadow: 0 0 8px currentColor;
+    }
+
+    /* Chunky AWP Push Buttons */
+    .awp-btn {
+      position: relative;
+      transition: transform 0.06s ease, filter 0.1s ease;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.7), 0 8px 10px rgba(0,0,0,0.5), inset 0 2px 2px rgba(255,255,255,0.4);
+    }
+    .awp-btn:active:not(:disabled), .awp-btn.pressed {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 1px rgba(0,0,0,0.4);
+    }
+    .awp-btn.flashing {
+      animation: buttonBlink 0.35s infinite alternate ease-in-out;
+    }
+
+    @keyframes buttonBlink {
+      0% { filter: brightness(1) drop-shadow(0 0 2px rgba(255,255,255,0.2)); }
+      100% { filter: brightness(1.6) drop-shadow(0 0 10px currentColor); }
+    }
+
+    .trail-step.active {
+      animation: trailPulse 0.35s infinite alternate;
+    }
+    @keyframes trailPulse {
+      0% { transform: scale(1); filter: brightness(1.2); }
+      100% { transform: scale(1.05); filter: brightness(1.7) drop-shadow(0 0 8px currentColor); }
+    }
+
+    .glass-paytable {
+      background: radial-gradient(ellipse at 50% 20%, #1e293b 0%, #090d16 100%);
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 2px 5px rgba(0,0,0,0.5);
+    }
+    .paytable-row.highlight {
+      background: rgba(234, 179, 8, 0.25);
+      border-color: #facc15;
+      animation: winGlow 0.4s infinite alternate;
+    }
+    @keyframes winGlow {
+      0% { filter: brightness(1); }
+      100% { filter: brightness(1.4) drop-shadow(0 0 5px #facc15); }
+    }
+
+    .reel-viewport {
+      overflow: hidden;
+      background: #0f172a;
+      border: 3px solid #334155;
+      box-shadow: inset 0 15px 20px rgba(0,0,0,0.8), inset 0 -15px 20px rgba(0,0,0,0.8);
+    }
+    .reel-glass-reflection {
+      pointer-events: none;
+      background: linear-gradient(180deg, 
+        rgba(255,255,255,0.3) 0%, 
+        rgba(255,255,255,0.04) 35%, 
+        transparent 50%, 
+        rgba(0,0,0,0.45) 100%
+      );
+    }
+    .payline-wire {
+      pointer-events: none;
+      height: 2px;
+      background: rgba(239, 68, 68, 0.8);
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.95);
+    }
+
+    .bulb {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #334155;
+      transition: background-color 0.15s, box-shadow 0.15s;
+    }
+    .bulb.lit-yellow { background: #facc15; box-shadow: 0 0 8px #fde047; }
+    .bulb.lit-red { background: #ef4444; box-shadow: 0 0 8px #f87171; }
+    .bulb.lit-green { background: #22c55e; box-shadow: 0 0 8px #4ade80; }
+    .bulb.lit-blue { background: #38bdf8; box-shadow: 0 0 8px #7dd3fc; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col items-center justify-center p-2 select-none">
+
+  <!-- Mobile-first Pub Machine Cabinet Frame -->
+  <main class="w-full max-w-[430px] cabinet-casing rounded-3xl p-3 flex flex-col relative my-auto">
+    
+    <!-- Header Marquee & Lights -->
+    <header class="rounded-xl bg-gradient-to-b from-amber-950 via-red-950 to-stone-900 border-2 border-amber-600/70 p-2 text-center shadow-lg mb-2">
+      <div id="topBulbs" class="flex justify-between px-2 mb-1">
+        <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+        <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+        <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+      </div>
+
+      <div class="flex items-center justify-between px-1">
+        <div class="text-left">
+          <span class="text-[9px] uppercase tracking-wider text-amber-400 font-bold block">AWP CLASSIC</span>
+          <span class="text-[10px] bg-amber-500/20 text-amber-300 font-semibold px-1.5 py-0.5 rounded border border-amber-500/40">DIRECT PAY</span>
+        </div>
+        <div class="text-center">
+          <h1 class="text-2xl font-black tracking-wider text-red-500 drop-shadow-[0_2px_6px_rgba(239,68,68,0.7)] font-bezel leading-none">
+            BROOKIE'S LUCKY 7
+          </h1>
+          <p class="text-[9px] text-amber-300 font-bold tracking-widest uppercase">THE RED LION PUB</p>
+        </div>
+        <div class="text-right">
+          <span class="text-[9px] uppercase tracking-wider text-emerald-400 font-bold block">JACKPOT</span>
+          <span class="text-xs font-extrabold text-yellow-300 font-led animate-pulse">£10.00</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Classic Upper Glass Marquee Paytable -->
+    <section class="glass-paytable border-2 border-amber-500/50 rounded-xl p-2 mb-2 shadow-inner">
+      <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
+        <div id="payRow-SEVEN" class="paytable-row flex items-center justify-between bg-black/40 px-1.5 py-0.5 rounded border border-stone-800">
+          <span><span class="text-red-500 font-black">7 7 7</span> <span class="font-bold text-red-400">Red 7s</span></span>
+          <span class="font-led text-yellow-400 text-[9px]">£10.00</span>
+        </div>
+        <div id="payRow-BAR" class="paytable-row flex items-center justify-between bg-black/40 px-1.5 py-0.5 rounded border border-stone-800">
+          <span><span class="text-amber-400 font-black">BAR BAR BAR</span></span>
+          <span class="font-led text-yellow-400 text-[9px]">£5.00</span>
+        </div>
+        <div id="payRow-BELL" class="paytable-row flex items-center justify-between bg-black/40 px-1.5 py-0.5 rounded border border-stone-800">
+          <span>🔔🔔🔔 <span class="font-bold text-slate-200">Bells</span></span>
+          <span class="font-led text-yellow-400 text-[9px]">£3.00</span>
+        </div>
+        <div id="payRow-MELON" class="paytable-row flex items-center justify-between bg-black/40 px-1.5 py-0.5 rounded border border-stone-800">
+          <span>🍉🍉🍉 <span class="font-bold text-slate-200">Melons</span></span>
+          <span class="font-led text-yellow-400 text-[9px]">£2.00</span>
+        </div>
+        <div id="payRow-GRAPE" class="paytable-row flex items-center justify-between bg-black/40 px-1.5 py-0.5 rounded border border-stone-800">
+          <span>🍇🍇🍇 <span class="font-bold text-slate-200">Grapes</span></span>
+          <span class="font-led text-yellow-400 text-[9px]">£1.50</span>
+        </div>
+        <div id="payRow-ORANGE" class="paytable-row flex items-center justify-between bg-black/40 px-1.5 py-0.5 rounded border border-stone-800">
+          <span>🍊🍊🍊 <span class="font-bold text-slate-200">Oranges</span></span>
+          <span class="font-led text-yellow-400 text-[9px]">£1.00</span>
+        </div>
+        <div id="payRow-LEMON" class="paytable-row flex items-center justify-between bg-black/40 px-1.5 py-0.5 rounded border border-stone-800">
+          <span>🍋🍋🍋 <span class="font-bold text-slate-200">Lemons</span></span>
+          <span class="font-led text-yellow-400 text-[9px]">50p</span>
+        </div>
+        <div id="payRow-CHERRY3" class="paytable-row flex items-center justify-between bg-black/40 px-1.5 py-0.5 rounded border border-stone-800">
+          <span>🍒🍒🍒 <span class="font-bold text-slate-200">3x Cherry</span></span>
+          <span class="font-led text-yellow-400 text-[9px]">40p</span>
+        </div>
+        <div id="payRow-CHERRY2" class="paytable-row flex items-center justify-between bg-black/40 px-1.5 py-0.5 rounded border border-stone-800">
+          <span>🍒🍒 Any <span class="font-bold text-slate-200">2x Cherry</span></span>
+          <span class="font-led text-yellow-400 text-[9px]">30p</span>
+        </div>
+        <div id="payRow-CHERRY1" class="paytable-row flex items-center justify-between bg-black/40 px-1.5 py-0.5 rounded border border-stone-800">
+          <span>🍒 Any Any <span class="font-bold text-slate-200">1x Cherry</span></span>
+          <span class="font-led text-yellow-400 text-[9px]">20p</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mechanical 3-Reel Window -->
+    <section class="relative bg-zinc-900 rounded-2xl p-2 border-4 border-stone-700 shadow-2xl mb-2">
+      <!-- Payline side arrows -->
+      <div class="absolute left-0 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center">
+        <span class="w-2.5 h-2.5 bg-red-600 rounded-full border border-white animate-pulse"></span>
+      </div>
+      <div class="absolute right-0 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center">
+        <span class="w-2.5 h-2.5 bg-red-600 rounded-full border border-white animate-pulse"></span>
+      </div>
+
+      <div class="reel-viewport rounded-xl relative h-48 w-full grid grid-cols-3 gap-1 bg-black p-1">
+        <!-- Payline Center Wire -->
+        <div class="payline-wire absolute top-1/2 left-0 right-0 z-10 -translate-y-1/2"></div>
+        <!-- Gloss Reflection -->
+        <div class="reel-glass-reflection absolute inset-0 z-10 pointer-events-none rounded-lg"></div>
+
+        <!-- 3 Reel Canvases -->
+        <div class="relative w-full h-full bg-white rounded overflow-hidden border border-zinc-600">
+          <canvas id="reelCanvas1" class="w-full h-full block"></canvas>
+        </div>
+        <div class="relative w-full h-full bg-white rounded overflow-hidden border border-zinc-600">
+          <canvas id="reelCanvas2" class="w-full h-full block"></canvas>
+        </div>
+        <div class="relative w-full h-full bg-white rounded overflow-hidden border border-zinc-600">
+          <canvas id="reelCanvas3" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+      <!-- Feature Status Ribbon -->
+      <div class="mt-2 flex items-center justify-between px-1.5 bg-black/85 rounded border border-amber-600/40 py-1">
+        <div class="flex items-center gap-1">
+          <span class="text-[9px] text-amber-400 font-bold uppercase">NUDGES:</span>
+          <span id="nudgeCounter" class="text-xs font-led text-yellow-300">0</span>
+        </div>
+        <div id="reelWinText" class="text-[9px] font-bold text-emerald-400 font-led tracking-wider truncate text-right">
+          READY TO PLAY
+        </div>
+      </div>
+    </section>
+
+    <!-- Contextual Illuminated Orange Arcade Buttons (Hold / Nudge per reel) -->
+    <section class="grid grid-cols-3 gap-3 mb-2 px-1">
+      <button id="btnReel0" disabled aria-label="Reel 1 Hold or Nudge" class="awp-btn h-12 rounded-xl bg-gradient-to-b from-amber-500 via-orange-500 to-amber-700 border-2 border-amber-300 shadow-lg disabled:opacity-25 disabled:pointer-events-none transition-all flex items-center justify-center">
+        <div class="w-full h-full rounded-lg bg-gradient-to-t from-black/20 to-white/20 pointer-events-none"></div>
+      </button>
+
+      <button id="btnReel1" disabled aria-label="Reel 2 Hold or Nudge" class="awp-btn h-12 rounded-xl bg-gradient-to-b from-amber-500 via-orange-500 to-amber-700 border-2 border-amber-300 shadow-lg disabled:opacity-25 disabled:pointer-events-none transition-all flex items-center justify-center">
+        <div class="w-full h-full rounded-lg bg-gradient-to-t from-black/20 to-white/20 pointer-events-none"></div>
+      </button>
+
+      <button id="btnReel2" disabled aria-label="Reel 3 Hold or Nudge" class="awp-btn h-12 rounded-xl bg-gradient-to-b from-amber-500 via-orange-500 to-amber-700 border-2 border-amber-300 shadow-lg disabled:opacity-25 disabled:pointer-events-none transition-all flex items-center justify-center">
+        <div class="w-full h-full rounded-lg bg-gradient-to-t from-black/20 to-white/20 pointer-events-none"></div>
+      </button>
+    </section>
+
+    <!-- LED Meters -->
+    <section class="grid grid-cols-3 gap-2 mb-2 bg-black/60 p-1.5 rounded-xl border border-stone-700">
+      <div class="led-display rounded-lg p-1 text-center">
+        <div class="text-[8px] uppercase tracking-wider text-slate-400 font-semibold">BANK</div>
+        <div id="bankDisplay" class="text-xs font-led text-emerald-400">£10.00</div>
+      </div>
+      <div class="led-display rounded-lg p-1 text-center">
+        <div class="text-[8px] uppercase tracking-wider text-slate-400 font-semibold">LAST WIN</div>
+        <div id="winDisplay" class="text-xs font-led text-yellow-300">£0.00</div>
+      </div>
+      <div class="led-display rounded-lg p-1 text-center">
+        <div class="text-[8px] uppercase tracking-wider text-slate-400 font-semibold">STAKE</div>
+        <div id="stakeDisplay" class="text-xs font-led text-sky-400">20p</div>
+      </div>
+    </section>
+
+    <!-- Master Console: Single Full-Width SPIN Button -->
+    <footer class="w-full">
+      <button id="btnSpin" class="w-full awp-btn bg-gradient-to-b from-red-500 via-red-600 to-red-800 hover:from-red-400 hover:to-red-700 active:from-red-700 active:to-red-900 text-white font-black text-2xl py-3.5 rounded-2xl border-4 border-amber-300 font-bezel tracking-widest shadow-2xl flex items-center justify-center animate-pulse">
+        SPIN
+      </button>
+    </footer>
+
+    <!-- Bottom Actions -->
+    <div class="mt-2 flex items-center justify-between text-[10px] text-zinc-400 px-1 font-semibold">
+      <button id="btnInsertCoin" class="bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/40 px-2 py-0.5 rounded text-[10px]">
+        + INSERT £5 COIN
+      </button>
+      <span class="text-emerald-400">🔊 AUDIO ACTIVE</span>
+    </div>
+  </main>
+
+  <!-- Paytable Modal -->
+  <div id="paytableModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-slate-900 border-2 border-amber-500 max-w-sm w-full rounded-2xl p-4 text-slate-100 flex flex-col gap-3 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-amber-500/40 pb-2">
+        <h3 class="text-lg font-bezel text-amber-400 font-bold tracking-wide">BROOKIE'S LUCKY 7 PAYTABLE</h3>
+        <button id="btnCloseModal" class="text-slate-400 hover:text-white font-bold text-lg px-2">✕</button>
+      </div>
+
+      <div class="space-y-1.5 text-xs">
+        <div class="flex justify-between items-center py-0.5 border-b border-stone-800">
+          <span class="flex items-center gap-1.5"><span class="text-red-500 font-black">7 7 7</span> <span>Jackpot Red 7</span></span>
+          <span class="font-led text-yellow-400">£10.00</span>
+        </div>
+        <div class="flex justify-between items-center py-0.5 border-b border-stone-800">
+          <span class="flex items-center gap-1.5"><span class="text-amber-400 font-black">BAR BAR BAR</span> <span>Golden Bar</span></span>
+          <span class="font-led text-yellow-400">£5.00</span>
+        </div>
+        <div class="flex justify-between items-center py-0.5 border-b border-stone-800">
+          <span class="flex items-center gap-1.5">🔔 🔔 🔔 <span>Golden Bell</span></span>
+          <span class="font-led text-yellow-400">£3.00</span>
+        </div>
+        <div class="flex justify-between items-center py-0.5 border-b border-stone-800">
+          <span class="flex items-center gap-1.5">🍉 🍉 🍉 <span>Juicy Melon</span></span>
+          <span class="font-led text-yellow-400">£2.00</span>
+        </div>
+        <div class="flex justify-between items-center py-0.5 border-b border-stone-800">
+          <span class="flex items-center gap-1.5">🍇 🍇 🍇 <span>Grapes</span></span>
+          <span class="font-led text-yellow-400">£1.50</span>
+        </div>
+        <div class="flex justify-between items-center py-0.5 border-b border-stone-800">
+          <span class="flex items-center gap-1.5">🍊 🍊 🍊 <span>Orange</span></span>
+          <span class="font-led text-yellow-400">£1.00</span>
+        </div>
+        <div class="flex justify-between items-center py-0.5 border-b border-stone-800">
+          <span class="flex items-center gap-1.5">🍋 🍋 🍋 <span>Lemon</span></span>
+          <span class="font-led text-yellow-400">50p</span>
+        </div>
+        <div class="flex justify-between items-center py-0.5 border-b border-stone-800">
+          <span class="flex items-center gap-1.5">🍒 🍒 🍒 <span>3x Cherries</span></span>
+          <span class="font-led text-yellow-400">40p</span>
+        </div>
+        <div class="flex justify-between items-center py-0.5 border-b border-stone-800">
+          <span class="flex items-center gap-1.5">🍒 🍒 Any <span>2x Cherries</span></span>
+          <span class="font-led text-yellow-400">30p</span>
+        </div>
+        <div class="flex justify-between items-center py-0.5">
+          <span class="flex items-center gap-1.5">🍒 Any Any <span>1x Cherry</span></span>
+          <span class="font-led text-yellow-400">20p</span>
+        </div>
+      </div>
+
+      <button id="btnGotIt" class="awp-btn bg-amber-600 hover:bg-amber-500 text-zinc-950 font-bold py-2 rounded-xl text-center font-bezel tracking-wider">
+        CLOSE PAYTABLE
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       1. SYNTHESIZED WEB AUDIO ENGINE
+       ========================================================================= */
+    class PubAudioEngine {
+      constructor() {
+        this.ctx = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+      }
+
+      resume() {
+        this.init();
+        if (this.ctx && this.ctx.state === 'suspended') {
+          return this.ctx.resume();
+        }
+        return Promise.resolve();
+      }
+
+      playReelStop() {
+        this.resume();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // Low mechanical thud
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(130, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
+
+        gain.gain.setValueAtTime(0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+
+        // Clunk latch
+        const snap = this.ctx.createOscillator();
+        const snapGain = this.ctx.createGain();
+        snap.type = 'sawtooth';
+        snap.frequency.setValueAtTime(400, now);
+        snap.frequency.exponentialRampToValueAtTime(70, now + 0.03);
+        snapGain.gain.setValueAtTime(0.35, now);
+        snapGain.gain.exponentialRampToValueAtTime(0.01, now + 0.03);
+
+        snap.connect(snapGain);
+        snapGain.connect(this.ctx.destination);
+        snap.start(now);
+        snap.stop(now + 0.04);
+      }
+
+      playSpinTick() {
+        this.resume();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(240, now);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.02);
+      }
+
+      playNudgeStep() {
+        this.resume();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(90, now + 0.05);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      }
+
+      playButtonPress() {
+        this.resume();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(550, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + 0.03);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.03);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.035);
+      }
+
+      playCoinDrop() {
+        this.resume();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        for (let i = 0; i < 4; i++) {
+          const t = now + i * 0.05;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1100 + i * 180, t);
+          gain.gain.setValueAtTime(0.25, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.05);
+        }
+      }
+
+      playWinBleeps() {
+        this.resume();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        const now = this.ctx.currentTime;
+        notes.forEach((freq, idx) => {
+          const t = now + (idx * 0.08);
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.15, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.07);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.075);
+        });
+      }
+
+      playBuzzer() {
+        this.resume();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.setValueAtTime(110, now + 0.08);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.21);
+      }
+    }
+
+    const audio = new PubAudioEngine();
+
+    /* =========================================================================
+       2. SYMBOLS & MECHANICAL REEL DEFINITION
+       ========================================================================= */
+    const SYMBOLS = {
+      SEVEN:  { id: 'SEVEN',  name: 'Red 7',   payout: 10.00, isSeven: true },
+      BAR:    { id: 'BAR',    name: 'Bar',     payout: 5.00,  isBar: true },
+      BELL:   { id: 'BELL',   name: 'Bell',    payout: 3.00,  emoji: '🔔' },
+      MELON:  { id: 'MELON',  name: 'Melon',   payout: 2.00,  emoji: '🍉' },
+      GRAPE:  { id: 'GRAPE',  name: 'Grapes',  payout: 1.50,  emoji: '🍇' },
+      ORANGE: { id: 'ORANGE', name: 'Orange',  payout: 1.00,  emoji: '🍊' },
+      LEMON:  { id: 'LEMON',  name: 'Lemon',   payout: 0.50,  emoji: '🍋' },
+      CHERRY: { id: 'CHERRY', name: 'Cherry',  payout: 0.40,  emoji: '🍒' }
+    };
+
+    const REEL_STRIP_1 = [
+      SYMBOLS.CHERRY, SYMBOLS.LEMON, SYMBOLS.BELL, SYMBOLS.ORANGE,
+      SYMBOLS.GRAPE, SYMBOLS.BAR, SYMBOLS.CHERRY, SYMBOLS.MELON,
+      SYMBOLS.BAR, SYMBOLS.LEMON, SYMBOLS.ORANGE, SYMBOLS.SEVEN,
+      SYMBOLS.BELL, SYMBOLS.CHERRY, SYMBOLS.MELON, SYMBOLS.GRAPE
+    ];
+
+    const REEL_STRIP_2 = [
+      SYMBOLS.LEMON, SYMBOLS.CHERRY, SYMBOLS.ORANGE, SYMBOLS.BELL,
+      SYMBOLS.MELON, SYMBOLS.CHERRY, SYMBOLS.BAR, SYMBOLS.GRAPE,
+      SYMBOLS.SEVEN, SYMBOLS.LEMON, SYMBOLS.BAR, SYMBOLS.ORANGE,
+      SYMBOLS.BELL, SYMBOLS.GRAPE, SYMBOLS.MELON, SYMBOLS.CHERRY
+    ];
+
+    const REEL_STRIP_3 = [
+      SYMBOLS.ORANGE, SYMBOLS.CHERRY, SYMBOLS.LEMON, SYMBOLS.MELON,
+      SYMBOLS.BELL, SYMBOLS.GRAPE, SYMBOLS.CHERRY, SYMBOLS.BAR,
+      SYMBOLS.BAR, SYMBOLS.LEMON, SYMBOLS.SEVEN, SYMBOLS.ORANGE,
+      SYMBOLS.MELON, SYMBOLS.BELL, SYMBOLS.CHERRY, SYMBOLS.GRAPE
+    ];
+
+    const strips = [REEL_STRIP_1, REEL_STRIP_2, REEL_STRIP_3];
+
+    /* =========================================================================
+       3. GAME STATE (SIMPLIFIED - NO HI-LO)
+       ========================================================================= */
+    const state = {
+      bank: 10.00,
+      lastWin: 0.00,
+      stakeIndex: 0,
+      stakes: [0.20, 0.50, 1.00],
+      isSpinning: false,
+
+      // Reel positions (top-to-bottom downwards progression)
+      reelOffsets: [0, 5, 10],
+
+      // Holds & Nudges
+      holdsActive: [false, false, false],
+      holdsOffered: false,
+      nudgesAvailable: 0,
+
+      winningRowKey: null,
+      chaserStep: 0
+    };
+
+    /* =========================================================================
+       4. CANVAS RENDERING (PURE DOWNWARD REEL ROLL)
+       ========================================================================= */
+    const canvases = [
+      document.getElementById('reelCanvas1'),
+      document.getElementById('reelCanvas2'),
+      document.getElementById('reelCanvas3')
+    ];
+    const contexts = canvases.map(c => c.getContext('2d'));
+
+    function resizeCanvases() {
+      canvases.forEach(canvas => {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+      });
+    }
+
+    function drawSymbol(ctx, symbol, centerX, centerY, width, height, isPayline) {
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(centerX - width * 0.46, centerY - height * 0.44, width * 0.92, height * 0.88);
+
+      if (symbol.isSeven) {
+        // Authentic Bold Red 7 with gold border outline centered on reel
+        ctx.font = `900 ${Math.floor(height * 0.72)}px 'Teko', 'Impact', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#facc15';
+        ctx.strokeText('7', centerX, centerY);
+        
+        ctx.fillStyle = '#dc2626';
+        ctx.fillText('7', centerX, centerY);
+      } else if (symbol.isBar) {
+        // Classic AWP Black & Gold BAR plaque centered on reel
+        const barW = width * 0.8;
+        const barH = height * 0.52;
+        const barX = centerX - barW / 2;
+        const barY = centerY - barH / 2;
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(barX, barY, barW, barH);
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(barX, barY, barW, barH);
+
+        ctx.font = `900 ${Math.floor(height * 0.32)}px 'Teko', 'Impact', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#facc15';
+        ctx.fillText('BAR', centerX, centerY);
+      } else {
+        // Fruit & Bell Emojis centered on reel
+        ctx.font = `${Math.floor(height * 0.56)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(symbol.emoji, centerX, centerY);
+      }
+
+      if (isPayline) {
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(centerX - width * 0.46, centerY - height * 0.44, width * 0.92, height * 0.88);
+      }
+      ctx.restore();
+    }
+
+    // Downward Reel Rendering:
+    // When reelOffset increases, symbols travel downwards (top to bottom).
+    // The center payline symbol corresponds to index: Math.round(reelOffset) % N
+    function renderReel(reelIndex) {
+      const canvas = canvases[reelIndex];
+      const ctx = contexts[reelIndex];
+      const strip = strips[reelIndex];
+      const w = canvas.width;
+      const h = canvas.height;
+      const symbolHeight = h / 3; // 3 visible rows
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Background reel cylinder shading
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, '#94a3b8');
+      grad.addColorStop(0.18, '#f1f5f9');
+      grad.addColorStop(0.5, '#ffffff');
+      grad.addColorStop(0.82, '#f1f5f9');
+      grad.addColorStop(1, '#94a3b8');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      const offset = state.reelOffsets[reelIndex];
+      const baseIndex = Math.floor(offset);
+      const frac = offset - baseIndex; // [0, 1)
+
+      // Rows: -1 (above), 0 (top visible), 1 (center payline), 2 (bottom visible), 3 (below)
+      for (let row = -1; row <= 3; row++) {
+        // Because downward motion increases offset, symbol moving down comes from higher indices
+        const symbolIndex = ((baseIndex - row + 1) % strip.length + strip.length) % strip.length;
+        const symbol = strip[symbolIndex];
+        const centerY = (row + frac) * symbolHeight + (symbolHeight / 2);
+
+        // Subtle 3D cylindrical perspective scaling
+        const distFromCenter = Math.abs(centerY - (h / 2));
+        const scaleY = 1 - Math.min(0.2, (distFromCenter / (h / 2)) * 0.2);
+
+        ctx.save();
+        ctx.translate(w / 2, centerY);
+        ctx.scale(1, scaleY);
+        drawSymbol(ctx, symbol, 0, 0, w, symbolHeight, row === 1);
+        ctx.restore();
+      }
+
+      // Cylinder top & bottom shadows
+      const shade = ctx.createLinearGradient(0, 0, 0, h);
+      shade.addColorStop(0, 'rgba(0,0,0,0.5)');
+      shade.addColorStop(0.2, 'rgba(0,0,0,0)');
+      shade.addColorStop(0.8, 'rgba(0,0,0,0)');
+      shade.addColorStop(1, 'rgba(0,0,0,0.5)');
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    function renderAllReels() {
+      for (let i = 0; i < 3; i++) {
+        renderReel(i);
+      }
+    }
+
+    /* =========================================================================
+       5. CHASER BULBS & MARQUEE
+       ========================================================================= */
+    const bulbElements = Array.from(document.querySelectorAll('#topBulbs .bulb'));
+    const bulbColors = ['lit-yellow', 'lit-red', 'lit-green', 'lit-blue'];
+
+    setInterval(() => {
+      state.chaserStep = (state.chaserStep + 1) % bulbElements.length;
+      bulbElements.forEach((bulb, idx) => {
+        bulb.className = 'bulb';
+        if ((idx + state.chaserStep) % 2 === 0) {
+          bulb.classList.add(bulbColors[(idx + state.chaserStep) % bulbColors.length]);
+        }
+      });
+    }, 200);
+
+    /* =========================================================================
+       6. UI STATE UPDATE
+       ========================================================================= */
+    const elBank = document.getElementById('bankDisplay');
+    const elWin = document.getElementById('winDisplay');
+    const elStake = document.getElementById('stakeDisplay');
+    const elNudgeCounter = document.getElementById('nudgeCounter');
+    const elReelWinText = document.getElementById('reelWinText');
+    const btnSpin = document.getElementById('btnSpin');
+
+    const reelBtns = [
+      document.getElementById('btnReel0'),
+      document.getElementById('btnReel1'),
+      document.getElementById('btnReel2')
+    ];
+
+    function updateDisplays() {
+      elBank.textContent = `£${state.bank.toFixed(2)}`;
+      elWin.textContent = `£${state.lastWin.toFixed(2)}`;
+      
+      const currentStakeVal = state.stakes[state.stakeIndex];
+      elStake.textContent = currentStakeVal < 1.00 ? `${Math.round(currentStakeVal * 100)}p` : `£${currentStakeVal.toFixed(2)}`;
+      elNudgeCounter.textContent = state.nudgesAvailable;
+
+      // Update the 3 textless orange arcade buttons
+      reelBtns.forEach((btn, idx) => {
+        const isHeld = state.holdsActive[idx];
+        const canNudge = state.nudgesAvailable > 0 && !state.isSpinning;
+        const canHold = state.holdsOffered && !state.isSpinning;
+
+        btn.disabled = (!canNudge && !canHold && !isHeld);
+
+        if (isHeld) {
+          // Lit and pressed state
+          btn.classList.add('pressed', 'brightness-125', 'border-yellow-200');
+          btn.classList.remove('flashing');
+        } else if (canNudge || canHold) {
+          // Flashing beckoning light
+          btn.classList.add('flashing');
+          btn.classList.remove('pressed', 'brightness-125', 'border-yellow-200');
+        } else {
+          // Idle unlit state
+          btn.classList.remove('flashing', 'pressed', 'brightness-125', 'border-yellow-200');
+        }
+      });
+
+      // Paytable line highlighting
+      document.querySelectorAll('.paytable-row').forEach(row => row.classList.remove('highlight'));
+      if (state.winningRowKey) {
+        const activeRow = document.getElementById(`payRow-${state.winningRowKey}`);
+        if (activeRow) activeRow.classList.add('highlight');
+      }
+
+      // Spin button state
+      btnSpin.disabled = state.isSpinning || state.nudgesAvailable > 0;
+      if (btnSpin.disabled) {
+        btnSpin.classList.remove('animate-pulse');
+      } else {
+        btnSpin.classList.add('animate-pulse');
+      }
+    }
+
+    /* =========================================================================
+       7. PAYLINE CHECK & SPIN LOGIC
+       ========================================================================= */
+    function getCenterSymbol(reelIndex) {
+      const strip = strips[reelIndex];
+      const idx = ((Math.round(state.reelOffsets[reelIndex])) % strip.length + strip.length) % strip.length;
+      return strip[idx];
+    }
+
+    function checkWinLine() {
+      const s1 = getCenterSymbol(0);
+      const s2 = getCenterSymbol(1);
+      const s3 = getCenterSymbol(2);
+      const stakeRatio = state.stakes[state.stakeIndex] / 0.20;
+
+      // 3 matching symbols
+      if (s1.id === s2.id && s2.id === s3.id) {
+        return {
+          won: true,
+          type: '3_OF_A_KIND',
+          rowKey: s1.id === 'CHERRY' ? 'CHERRY3' : s1.id,
+          symbol: s1,
+          payout: s1.payout * stakeRatio
+        };
+      }
+
+      // Cherry wins: 2 Cherries anywhere on payline or 1 Cherry
+      const cherries = [s1, s2, s3].filter(s => s.id === 'CHERRY').length;
+      if (cherries === 2) {
+        return {
+          won: true,
+          type: '2_CHERRIES',
+          rowKey: 'CHERRY2',
+          symbol: SYMBOLS.CHERRY,
+          payout: 0.30 * stakeRatio
+        };
+      }
+      if (cherries === 1) {
+        return {
+          won: true,
+          type: '1_CHERRY',
+          rowKey: 'CHERRY1',
+          symbol: SYMBOLS.CHERRY,
+          payout: 0.20 * stakeRatio
+        };
+      }
+
+      return { won: false };
+    }
+
+    function spinReels() {
+      if (state.isSpinning) return;
+
+      const stake = state.stakes[state.stakeIndex];
+      if (state.bank < stake) {
+        elReelWinText.textContent = "LOW BANK! INSERT COIN";
+        audio.playBuzzer();
+        return;
+      }
+
+      audio.playButtonPress();
+      state.bank -= stake;
+      state.isSpinning = true;
+      state.winningRowKey = null;
+      elReelWinText.textContent = "SPINNING...";
+
+      const reelsToSpin = [
+        !state.holdsActive[0],
+        !state.holdsActive[1],
+        !state.holdsActive[2]
+      ];
+
+      // Reset active holds & nudges
+      state.holdsOffered = false;
+      state.holdsActive = [false, false, false];
+      state.nudgesAvailable = 0;
+      updateDisplays();
+
+      // Sequential stops: Reel 1 (1.1s), Reel 2 (1.6s), Reel 3 (2.1s)
+      const durations = [1100, 1600, 2100];
+      const startTimes = [performance.now(), performance.now(), performance.now()];
+      const initialOffsets = [...state.reelOffsets];
+      const reelStopped = [!reelsToSpin[0], !reelsToSpin[1], !reelsToSpin[2]];
+
+      // Downward movement
+      const stepsToMove = [
+        reelsToSpin[0] ? 24 + Math.floor(Math.random() * 16) : 0,
+        reelsToSpin[1] ? 36 + Math.floor(Math.random() * 16) : 0,
+        reelsToSpin[2] ? 48 + Math.floor(Math.random() * 16) : 0
+      ];
+
+      const targetOffsets = [
+        initialOffsets[0] + stepsToMove[0],
+        initialOffsets[1] + stepsToMove[1],
+        initialOffsets[2] + stepsToMove[2]
+      ];
+
+      let lastTickTime = 0;
+
+      function animFrame(now) {
+        let allStopped = true;
+
+        for (let i = 0; i < 3; i++) {
+          if (!reelsToSpin[i]) continue;
+
+          const elapsed = now - startTimes[i];
+          const dur = durations[i];
+
+          if (elapsed < dur) {
+            allStopped = false;
+            const p = elapsed / dur;
+            const easeOut = 1 - Math.pow(1 - p, 3);
+            state.reelOffsets[i] = initialOffsets[i] + (stepsToMove[i] * easeOut);
+
+            if (now - lastTickTime > 75) {
+              audio.playSpinTick();
+              lastTickTime = now;
+            }
+          } else {
+            if (!reelStopped[i]) {
+              state.reelOffsets[i] = targetOffsets[i];
+              reelStopped[i] = true;
+              audio.playReelStop();
+            }
+          }
+        }
+
+        renderAllReels();
+
+        if (!allStopped) {
+          requestAnimationFrame(animFrame);
+        } else {
+          for (let i = 0; i < 3; i++) {
+            state.reelOffsets[i] = Math.round(state.reelOffsets[i]) % strips[i].length;
+          }
+          renderAllReels();
+          onReelsStopped();
+        }
+      }
+
+      requestAnimationFrame(animFrame);
+    }
+
+    /* =========================================================================
+       8. DIRECT PAYOUT & FEATURE EVALUATION (NO HI-LO)
+       ========================================================================= */
+    function onReelsStopped() {
+      state.isSpinning = false;
+      const result = checkWinLine();
+
+      if (result.won) {
+        // Direct payout to bank
+        audio.playWinBleeps();
+        setTimeout(() => audio.playCoinDrop(), 320);
+
+        state.lastWin = result.payout;
+        state.bank += result.payout;
+        state.winningRowKey = result.rowKey;
+
+        elReelWinText.textContent = `WINNER! £${result.payout.toFixed(2)}`;
+      } else {
+        state.winningRowKey = null;
+        evaluatePubFeatures();
+      }
+      updateDisplays();
+    }
+
+    function evaluatePubFeatures() {
+      const holdRoll = Math.random();
+      if (holdRoll < 0.38) {
+        state.holdsOffered = true;
+        elReelWinText.textContent = "HOLDS OFFERED! PRESS HOLD";
+        audio.playWinBleeps();
+      } else {
+        state.holdsOffered = false;
+      }
+
+      const nudgeRoll = Math.random();
+      if (!state.holdsOffered && nudgeRoll < 0.30) {
+        state.nudgesAvailable = Math.floor(Math.random() * 3) + 1;
+        elReelWinText.textContent = `${state.nudgesAvailable} NUDGE${state.nudgesAvailable > 1 ? 'S' : ''} AWARDED!`;
+        audio.playWinBleeps();
+      }
+
+      if (!state.holdsOffered && state.nudgesAvailable === 0) {
+        elReelWinText.textContent = "NO WIN - SPIN AGAIN!";
+      }
+    }
+
+    /* =========================================================================
+       9. NUDGES & STEPPING
+       ========================================================================= */
+    function executeNudge(reelIndex) {
+      if (state.nudgesAvailable <= 0 || state.isSpinning) return;
+
+      audio.playNudgeStep();
+      state.nudgesAvailable--;
+      state.reelOffsets[reelIndex] = (state.reelOffsets[reelIndex] + 1) % strips[reelIndex].length;
+      renderReel(reelIndex);
+
+      const result = checkWinLine();
+      if (result.won) {
+        state.nudgesAvailable = 0;
+        audio.playWinBleeps();
+        setTimeout(() => audio.playCoinDrop(), 300);
+
+        state.lastWin = result.payout;
+        state.bank += result.payout;
+        state.winningRowKey = result.rowKey;
+
+        elReelWinText.textContent = `NUDGE WIN! £${result.payout.toFixed(2)}`;
+      } else {
+        if (state.nudgesAvailable === 0) {
+          elReelWinText.textContent = "NUDGES COMPLETED";
+        } else {
+          elReelWinText.textContent = `${state.nudgesAvailable} NUDGE${state.nudgesAvailable > 1 ? 'S' : ''} LEFT`;
+        }
+      }
+      updateDisplays();
+    }
+
+    function autoNudgeBest() {
+      if (state.nudgesAvailable <= 0 || state.isSpinning) return;
+      audio.playButtonPress();
+
+      const nMax = state.nudgesAvailable;
+      let foundSolution = null;
+
+      for (let n1 = 0; n1 <= nMax; n1++) {
+        for (let n2 = 0; n2 <= (nMax - n1); n2++) {
+          const n3 = nMax - n1 - n2;
+          const s1 = strips[0][((Math.round(state.reelOffsets[0] + n1)) % strips[0].length + strips[0].length) % strips[0].length];
+          const s2 = strips[1][((Math.round(state.reelOffsets[1] + n2)) % strips[1].length + strips[1].length) % strips[1].length];
+          const s3 = strips[2][((Math.round(state.reelOffsets[2] + n3)) % strips[2].length + strips[2].length) % strips[2].length];
+
+          if (s1.id === s2.id && s2.id === s3.id) {
+            foundSolution = [n1, n2, n3];
+            break;
+          }
+        }
+        if (foundSolution) break;
+      }
+
+      if (foundSolution) {
+        elReelWinText.textContent = "AUTO-NUDGING WINNER!";
+        let delay = 0;
+        for (let r = 0; r < 3; r++) {
+          for (let step = 0; step < foundSolution[r]; step++) {
+            setTimeout(() => {
+              executeNudge(r);
+            }, delay);
+            delay += 220;
+          }
+        }
+      } else {
+        executeNudge(0);
+      }
+    }
+
+    /* =========================================================================
+       10. EVENT LISTENERS
+       ========================================================================= */
+    btnSpin.addEventListener('click', spinReels);
+
+    // Contextual orange button interaction: nudges take priority, then holds
+    reelBtns.forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        if (state.isSpinning) return;
+
+        if (state.nudgesAvailable > 0) {
+          executeNudge(idx);
+        } else if (state.holdsOffered) {
+          audio.playButtonPress();
+          state.holdsActive[idx] = !state.holdsActive[idx];
+          updateDisplays();
+        }
+      });
+    });
+
+    document.getElementById('btnInsertCoin').addEventListener('click', () => {
+      audio.playCoinDrop();
+      state.bank += 5.00;
+      elReelWinText.textContent = "£5.00 INSERTED! READY TO PLAY";
+      updateDisplays();
+    });
+
+    // AudioContext unlock on first user gesture
+    ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(evt => {
+      window.addEventListener(evt, () => audio.resume(), { once: true });
+    });
+
+    // Handle screen resize
+    window.addEventListener('resize', () => {
+      resizeCanvases();
+      renderAllReels();
+    });
+
+    // Keyboard Hotkeys (1, 2, 3 mapped to orange buttons)
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        spinReels();
+      } else if (e.key === '1') {
+        reelBtns[0].click();
+      } else if (e.key === '2') {
+        reelBtns[1].click();
+      } else if (e.key === '3') {
+        reelBtns[2].click();
+      }
+    });
+
+    /* =========================================================================
+       11. INITIALIZATION
+       ========================================================================= */
+    window.onload = function() {
+      resizeCanvases();
+      renderAllReels();
+      updateDisplays();
+    };
+  </script>
+</body>
+</html>

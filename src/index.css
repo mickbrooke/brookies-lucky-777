@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+:root {
+  --wood-cabinet: radial-gradient(circle at 50% 15%, #422006 0%, #1c0a00 100%);
+}
+
+body {
+  font-family: 'Chakra Petch', sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  background: #09090b;
+  overflow-x: hidden;
+}
+
+.font-led {
+  font-family: 'Press Start 2P', monospace;
+}
+
+.font-bezel {
+  font-family: 'Teko', sans-serif;
+  letter-spacing: 1px;
+}
+
+.cabinet-casing {
+  background: var(--wood-cabinet);
+  box-shadow: 0 0 35px rgba(0,0,0,0.95), inset 0 0 15px rgba(0,0,0,0.8), inset 0 2px 4px rgba(251, 191, 36, 0.4);
+  border: 3px solid #b45309;
+}
+
+@media (min-width: 640px) {
+  .cabinet-casing {
+    border: 4px solid #b45309;
+  }
+}
+
+.led-display {
+  background: #090d16;
+  border: 2px solid #1e293b;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.95);
+  text-shadow: 0 0 8px currentColor;
+}
+
+/* Chunky AWP Push Buttons */
+.awp-btn {
+  position: relative;
+  transition: transform 0.06s ease, filter 0.1s ease;
+  box-shadow: 0 5px 0 rgba(0,0,0,0.7), 0 8px 10px rgba(0,0,0,0.5), inset 0 2px 2px rgba(255,255,255,0.4);
+}
+.awp-btn:active:not(:disabled), .awp-btn.pressed {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 1px rgba(0,0,0,0.4);
+}
+.awp-btn.flashing, .awp-btn.flashing-hold {
+  animation: holdBlink 0.35s infinite alternate ease-in-out;
+}
+
+@keyframes holdBlink {
+  0% { filter: brightness(1) drop-shadow(0 0 2px rgba(245, 158, 11, 0.3)); }
+  100% { filter: brightness(1.6) drop-shadow(0 0 12px #f59e0b); }
+}
+
+.awp-btn.flashing-nudge {
+  animation: nudgeBlink 0.3s infinite alternate ease-in-out;
+}
+
+@keyframes nudgeBlink {
+  0% { filter: brightness(1) drop-shadow(0 0 2px rgba(34, 197, 94, 0.4)); }
+  100% { filter: brightness(1.7) drop-shadow(0 0 14px #22c55e); }
+}
+
+.glass-paytable {
+  background: radial-gradient(ellipse at 50% 20%, #1e293b 0%, #090d16 100%);
+  box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 2px 5px rgba(0,0,0,0.5);
+}
+.paytable-row.highlight {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: #facc15;
+  animation: winGlow 0.4s infinite alternate;
+}
+@keyframes winGlow {
+  0% { filter: brightness(1); }
+  100% { filter: brightness(1.4) drop-shadow(0 0 5px #facc15); }
+}
+
+.reel-viewport {
+  overflow: hidden;
+  background: #0f172a;
+  border: 3px solid #334155;
+  box-shadow: inset 0 15px 20px rgba(0,0,0,0.8), inset 0 -15px 20px rgba(0,0,0,0.8);
+}
+.reel-glass-reflection {
+  pointer-events: none;
+  background: linear-gradient(180deg, 
+    rgba(255,255,255,0.3) 0%, 
+    rgba(255,255,255,0.04) 35%, 
+    transparent 50%, 
+    rgba(0,0,0,0.45) 100%
+  );
+}
+.payline-wire {
+  pointer-events: none;
+  height: 2px;
+  background: rgba(239, 68, 68, 0.8);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.95);
+}
+
+.bulb {
+  width: 7.5px;
+  height: 7.5px;
+  border-radius: 50%;
+  background: #334155;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+
+@media (min-width: 640px) {
+  .bulb {
+    width: 9px;
+    height: 9px;
+  }
+}
+.bulb.lit-yellow { background: #facc15; box-shadow: 0 0 8px #fde047; }
+.bulb.lit-red { background: #ef4444; box-shadow: 0 0 8px #f87171; }
+.bulb.lit-green { background: #22c55e; box-shadow: 0 0 8px #4ade80; }
+.bulb.lit-blue { background: #38bdf8; box-shadow: 0 0 8px #7dd3fc; }
